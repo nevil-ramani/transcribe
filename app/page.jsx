@@ -201,7 +201,7 @@ export default function Home() {
 
   const getAudioUrl = async (url) => {
     setLoading(1);
-    const response = await fetch("http://localhost:3000/api/download-audio", {
+    const response = await fetch("/api/download-audio", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
