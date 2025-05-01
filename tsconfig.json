@@ -21,6 +21,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/api/download-audio/route.js", "app/page.js", "app/api/download-audio/route.js", "app/page.jsx"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "app/api/download/download-audio/route.js", "app/page.js", "app/api/download/download-audio/route.js", "app/page.jsx"],
   "exclude": ["node_modules"]
 }

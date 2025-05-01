@@ -4,6 +4,9 @@ import React, { useRef, useEffect, useState } from "react";
 import Groq from "groq-sdk";
 import { Moon, Play, SunDim, RotateCcw, Pause, Copy } from "lucide-react";
 import { useCallback } from "react";
+// import puppeteer from 'puppeteer';
+// import { chromium } from 'playwright';
+// import fs from 'fs';  
 
 export default function Home() {
   const [transcription] = useState("");
@@ -208,6 +211,9 @@ export default function Home() {
       },
       body: JSON.stringify({ youtubeUrl: url }),
     });
+
+    // const response = await downloadYoutubeAudio(url);
+
     if (!response.ok) {
       throw new Error("Failed to fetch audio URL");
     }
