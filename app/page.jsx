@@ -4,9 +4,10 @@ import React, { useRef, useEffect, useState } from "react";
 import Groq from "groq-sdk";
 import { Moon, Play, SunDim, RotateCcw, Pause, Copy } from "lucide-react";
 import { useCallback } from "react";
+import { BarLoader, PuffLoader } from "react-spinners";
 // import puppeteer from 'puppeteer';
 // import { chromium } from 'playwright';
-// import fs from 'fs';  
+// import fs from 'fs';
 
 export default function Home() {
   const [transcription] = useState("");
@@ -226,17 +227,39 @@ export default function Home() {
     }
     // return data.audioUrl;
     // sendAudioForTranscription(data.audioUrl);
-    sendAudioForTranscription(data.downloadLink);
+    // sendAudioForTranscription(data.downloadLink);
+    sendAudioFileForTranscriptionBrowser(data.downloadLink);
   };
 
-  useEffect(() => {
-    if (youtubeUrl) {
-      console.log("YouTube URL changed:", youtubeUrl);
-      getAudioUrl(youtubeUrl);
-    }
-  }, [youtubeUrl]);
+  // const sendAudioForTranscription = async (audioUrl) => {
+  //   const groq = new Groq({
+  //     apiKey: "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",
+  //     dangerouslyAllowBrowser: true,
+  //   });
 
-  const sendAudioForTranscription = async (audioUrl) => {
+  //   try {
+  //     setLoading(2);
+  //     const trans = await groq.audio.translations.create({
+  //       url: audioUrl,
+  //       model: "whisper-large-v3",
+  //       response_format: "verbose_json",
+  //       temperature: 0.0,
+  //     });
+
+  //     const typedTrans = trans;
+  //     if (typedTrans?.segments) {
+  //       setSentences(typedTrans.segments);
+  //     }
+  //     console.log("Transcription:", typedTrans?.segments);
+  //   } catch (error) {
+  //     console.error("Error during transcription:", error);
+  //     setError("Error during transcription. Please try again.");
+  //   } finally {
+  //     setLoading(0);
+  //   }
+  // };
+
+  const sendAudioFileForTranscriptionBrowser = async (audioUrl) => {
     const groq = new Groq({
       apiKey: "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",
       dangerouslyAllowBrowser: true,
@@ -244,11 +267,24 @@ export default function Home() {
 
     try {
       setLoading(2);
-      const trans = await groq.audio.translations.create({
-        url: audioUrl,
+
+      // 1. Download the audio file using fetch
+      const audioBlob = await downloadAudioBrowser(audioUrl);
+
+      // 2. Create a File object (if needed, otherwise use the Blob directly)
+      const audioFile = new File([audioBlob], "audio.mp3", {
+        type: "audio/mp3",
+      }); // Adjust filename and type
+
+      setLoading(3);
+
+      // 3. Send the audio file to Groq
+      const trans = await groq.audio.transcriptions.create({
+        file: audioFile, // Or audioBlob if the API accepts Blobs directly
         model: "whisper-large-v3",
         response_format: "verbose_json",
         temperature: 0.0,
+        language: "en",
       });
 
       const typedTrans = trans;
@@ -263,6 +299,27 @@ export default function Home() {
       setLoading(0);
     }
   };
+
+  const downloadAudioBrowser = async (audioUrl) => {
+    try {
+      const response = await fetch(audioUrl);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const blob = await response.blob(); // Get the response as a Blob
+      return blob;
+    } catch (error) {
+      console.error("Error downloading audio:", error);
+      throw new Error("Failed to download audio file.");
+    }
+  };
+
+  useEffect(() => {
+    if (youtubeUrl) {
+      console.log("YouTube URL changed:", youtubeUrl);
+      getAudioUrl(youtubeUrl);
+    }
+  }, [youtubeUrl]);
 
   const copyToClipboard = (text, index) => {
     navigator.clipboard
@@ -432,28 +489,49 @@ export default function Home() {
                           }`}
                         >
                           {/* Waveform Animation */}
-                          <div className="flex justify-center items-center h-16 mb-4">
-                            {[...Array(5)].map((_, i) => (
-                              <div
-                                key={i}
-                                className={`mx-1 rounded-full w-3 h-12 ${
-                                  darkMode ? "bg-blue-400" : "bg-blue-500"
-                                } animate-pulse`}
-                                style={{
-                                  animationDelay: `${i * 0.2}s`,
-                                  animationDuration: "1s",
-                                }}
-                              />
-                            ))}
+                          <div className="flex justify-center items-center h-16">
+                            <PuffLoader
+                              color={darkMode ? "#60A5FA" : "#3B82F6"}
+                              loading={true}
+                              width={150}
+                              height={4}
+                            />
+
+                            {/* <PuffLoader /> */}
                           </div>
-                          <p className="mt-3 text-sm sm:text-base font-medium">
-                            Retrieving your audio...
+                          {/* <BarLoader /> */}
+                          <p className=" text-sm sm:text-base font-medium">
+                            Retrieving audio...
                           </p>
                         </div>
                       </div>
                     )}
 
                     {loading === 2 && (
+                      <div className="flex flex-col items-center justify-center my-6">
+                        <div
+                          className={`animate-pulse text-center ${
+                            darkMode ? "text-blue-400" : "text-blue-600"
+                          }`}
+                        >
+                          {/* Waveform Animation */}
+                          <div className="flex justify-center items-center h-16">
+                            <BarLoader
+                              color={darkMode ? "#60A5FA" : "#3B82F6"}
+                              loading={true}
+                              width={150}
+                              height={4}
+                            />
+                          </div>
+                          {/* <BarLoader /> */}
+                          <p className=" text-sm sm:text-base font-medium">
+                            Downloading audio...
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {loading === 3 && (
                       <div className="flex flex-col items-center justify-center my-6">
                         <div
                           className={`animate-pulse text-center ${
@@ -480,7 +558,7 @@ export default function Home() {
                             ></path>
                           </svg>
                           <p className="mt-3 text-sm sm:text-base font-medium">
-                            Transcribing your audio...
+                            Transcribing audio...
                           </p>
                         </div>
                       </div>
