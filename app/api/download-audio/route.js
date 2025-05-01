@@ -287,4 +287,7 @@ export async function POST(request) {
   }
 }
 
-export const runtime = "nodejs";
+//export const runtime = "nodejs";
+
+export const runtime = 'edge';
+
