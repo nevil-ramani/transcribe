@@ -233,7 +233,7 @@ export default function Home() {
 
   const sendAudioForTranscription = async (file: File) => {
     const groq = new Groq({
-      apiKey: "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",
+      apiKey: "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",
       dangerouslyAllowBrowser: true,
     });
 

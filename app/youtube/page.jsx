@@ -30,6 +30,15 @@ export default function Home() {
   const [playerReady, setPlayerReady] = useState(false);
   const playerInstanceRef = useRef(null);
 
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const url = urlParams.get("url");
+    if (url) {
+      setYoutubeUrl(decodeURIComponent(url));
+    }
+  }, []);
+
   useEffect(() => {
     if (!videoId) {
       return;
