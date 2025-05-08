@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import Groq from "groq-sdk";
-import { Moon, Play, SunDim, RotateCcw, Pause, Copy } from "lucide-react";
+import { Moon, Play, SunDim, Pause, GalleryHorizontal } from "lucide-react";
 import { useCallback } from "react";
 import { BarLoader, PuffLoader } from "react-spinners";
 // import puppeteer from 'puppeteer';
@@ -15,7 +15,7 @@ export default function Home() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(0);
   const [darkMode, setDarkMode] = useState(true);
-  const [copiedIndex, setCopiedIndex] = useState(null);
+  // const [copiedIndex, setCopiedIndex] = useState(null);
   const [allCopied, setAllCopied] = useState(false);
   const [startTime, setStartTime] = useState(0);
   const [endTime, setEndTime] = useState(null);
@@ -29,7 +29,7 @@ export default function Home() {
   const containerRef = useRef(null);
   const [playerReady, setPlayerReady] = useState(false);
   const playerInstanceRef = useRef(null);
-
+  const [autoScroll, setAutoScroll] = useState(true);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -574,96 +574,57 @@ export default function Home() {
 
                     {/* Transcription Results */}
                     {sentences.length > 0 && (
-                      <>
-                        <div
-                          className={`mb-4 sm:mb-6 ${
-                            darkMode ? "text-slate-400" : "text-gray-800"
-                          }`}
-                        >
-                          <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl sm:text-2xl font-semibold">
-                              Transcription
-                            </h2>
-                            <button
-                              onClick={() => copyToClipboard(transcription)}
-                              className={`px-3 py-1 sm:px-4 sm:py-2 rounded-lg flex items-center text-base sm:text-base font-medium transition-all duration-300 ${
+                      <div
+                        className={`mb-5 sm:mb-8 ${
+                          darkMode ? "text-slate-300" : "text-gray-700"
+                        }`}
+                      >
+                        <div className="flex justify-between items-center mb-5">
+                          <h2 className="text-2xl sm:text-3xl font-semibold">
+                            Transcription
+                          </h2>
+                          <button
+                            onClick={() => copyToClipboard(transcription)}
+                            className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg flex items-center text-lg sm:text-lg font-medium transition-all duration-300 ${
+                              darkMode
+                                ? "bg-zinc-800 hover:bg-gray-700 text-slate-200"
+                                : "bg-gray-100 hover:bg-gray-200 text-gray-800"
+                            }`}
+                          >
+                            {allCopied ? "Copied!" : "Copy All"}
+                          </button>
+                        </div>
+
+                        <div className="space-y-4 pb-10">
+                          {sentences.map((sentence, index) => (
+                            <div
+                              key={index}
+                              ref={(el) => {
+                                if (el)
+                                  sentenceRefs.current[
+                                    Math.floor(sentence.start)
+                                  ] = el;
+                              }}
+                              className={`relative p-4 sm:p-5 rounded-lg group transition-all duration-10 ${
                                 darkMode
-                                  ? "bg-zinc-900 hover:bg-gray-600"
-                                  : "bg-gray-200 hover:bg-gray-300 text-gray-800"
+                                  ? "bg-zinc-900 hover:bg-zinc-900"
+                                  : "bg-gray-50 hover:bg-gray-50"
                               }`}
                             >
-                              {allCopied ? "Copied!" : "Copy All"}
-                            </button>
-                          </div>
-
-                          <div className="space-y-3">
-                            {sentences.map((sentence, index) => (
-                              <div
-                                key={index}
-                                ref={(el) => {
-                                  if (el)
-                                    sentenceRefs.current[
-                                      Math.floor(sentence.start)
-                                    ] = el;
+                              <span
+                                onDoubleClick={() => setEndTime(sentence.end)}
+                                onClick={() => {
+                                  setStartTime(sentence.start);
+                                  setEndTime(loop ? sentence.end : null);
                                 }}
-                                className={`p-3 sm:p-4 rounded-lg flex justify-between items-start group transition-all duration-300 ${
-                                  darkMode
-                                    ? "bg-black hover:bg-black"
-                                    : "bg-gray-100 hover:bg-gray-200"
-                                }`}
+                                className="text-lg sm:text-xl leading-relaxed inline-block whitespace-normal"
                               >
-                                <p
-                                  onDoubleClick={() => {
-                                    setEndTime(sentence.end);
-                                  }}
-                                  onClick={() => {
-                                    setStartTime(sentence.start);
-                                    setEndTime(loop ? sentence.end : null);
-                                  }}
-                                  className="flex-1 mr-2 sm:mr-4 text-base sm:text-base"
-                                >
-                                  {sentence.text}
-                                </p>
-
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <span
-                                    className={`text-sm sm:text-sm font-medium pr-1 ${
-                                      darkMode
-                                        ? "text-zinc-500"
-                                        : "text-gray-500"
-                                    } ${
-                                      copiedIndex === index
-                                        ? "inline-block"
-                                        : "hidden"
-                                    }`}
-                                  >
-                                    {index + 1}
-                                  </span>
-
-                                  <button
-                                    onClick={() => {
-                                      copyToClipboard(sentence.text, index);
-
-                                      if (loop) {
-                                        setEndTime(sentence.end);
-                                      } else {
-                                        setEndTime(null);
-                                      }
-                                    }}
-                                    className={`rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-                                      darkMode
-                                        ? "bg-zinc-900 text-zinc-500"
-                                        : "bg-gray-200 text-gray-700"
-                                    }`}
-                                  >
-                                    <Copy size={18} />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
+                                {sentence.text}
+                              </span>
+                            </div>
+                          ))}
                         </div>
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -707,7 +668,7 @@ export default function Home() {
               >
                 <path d="M6 16c5 0 7-8 12-8a4 4 0 0 1 0 8c-5 0-7-8-12-8a4 4 0 1 0 0 8" />
               </svg>
-              {loop ? "On" : "Off"}
+              {/* {loop ? "On" : "Off"} */}
             </button>
           </div>
 
@@ -763,21 +724,23 @@ export default function Home() {
             )}
           </button>
 
-          <button
-            onClick={() => {
-              setStartTime(0);
-              setEndTime(null);
-              setLoop(false);
-            }}
-            className={`flex items-center justify-center rounded-full w-8 h-8 ${
-              darkMode
-                ? "bg-zinc-950 hover:bg-zinc-900"
-                : "bg-gray-200 hover:bg-gray-300"
-            } transition-colors`}
-            aria-label="Reset"
-          >
-            <RotateCcw size={16} />
-          </button>
+          <div className="flex items-center">
+            <button
+              onClick={() => setAutoScroll(!autoScroll)}
+              className={`flex items-center justify-center rounded-full w-8 h-8 ${
+                autoScroll
+                  ? darkMode
+                    ? "bg-zinc-950 text-zinc-400"
+                    : "bg-blue-500 text-white"
+                  : darkMode
+                  ? "bg-zinc-900 text-zinc-500"
+                  : "bg-gray-200 text-gray-700"
+              }`}
+            >
+              {/* <RotateCcw size={16} /> */}
+              <GalleryHorizontal size={16} />
+            </button>
+          </div>
         </div>
       </div>
     </div>
