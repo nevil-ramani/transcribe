@@ -618,6 +618,7 @@ export default function Home() {
                                 onClick={() => {
                                   setStartTime(sentence.start);
                                   setEndTime(loop ? sentence.end : null);
+                                  handlePlayPause();
                                 }}
                                 className="text-lg sm:text-xl leading-relaxed inline-block whitespace-normal"
                               >
@@ -716,7 +717,7 @@ export default function Home() {
               darkMode
                 ? "bg-zinc-900 hover:bg-zinc-800"
                 : "bg-blue-500 hover:bg-blue-600"
-            } text-zinc-400 transition-colors`}
+            } text-zinc-400 ition-colors`}
             aria-label={playerState === 1 ? "Pause" : "Play"}
           >
             {playerState === 1 ? (

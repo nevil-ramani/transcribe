@@ -681,6 +681,7 @@ export default function Home() {
                                 onClick={() => {
                                   setStartTime(sentence.start);
                                   setEndTime(loop ? sentence.end : null);
+                                  handlePlayPause();
                                 }}
                                 className="text-lg sm:text-xl leading-relaxed inline-block whitespace-normal"
                               >
