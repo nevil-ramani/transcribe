@@ -29,7 +29,7 @@ export default function Home() {
   const containerRef = useRef(null);
   const [playerReady, setPlayerReady] = useState(false);
   const playerInstanceRef = useRef(null);
-  const [autoScroll, setAutoScroll] = useState(true);
+  const [autoScroll, setAutoScroll] = useState(false);
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -380,7 +380,9 @@ export default function Home() {
   }, [videoId, playerReady, sentences, handleTimeUpdate]);
 
   useEffect(() => {
-    scrollToTime(videoPosition);
+    if (autoScroll) {
+      scrollToTime(videoPosition);
+    }
   }, [videoPosition, sentences]);
 
   return (
