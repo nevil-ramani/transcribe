@@ -254,6 +254,127 @@ export default function Home() {
     // sendAudioFileForTranscriptionBrowser(data.csrfToken, url);
   };
 
+
+  function parseTimeToSeconds(timeStr) {
+    // Split by ':' and handle various timestamp formats
+    const parts = timeStr.trim().split(':');
+    let hours = 0, minutes = 0, seconds = 0, milliseconds = 0;
+    
+    if (parts.length === 3) {
+      // Format: hh:mm:ss.ms
+      hours = parseInt(parts[0]) || 0;
+      minutes = parseInt(parts[1]) || 0;
+      const secondParts = parts[2].split('.');
+      seconds = parseInt(secondParts[0]) || 0;
+      milliseconds = parseFloat('0.' + (secondParts[1] || '0')) || 0;
+    } else if (parts.length === 2) {
+      // Format: mm:ss.ms
+      minutes = parseInt(parts[0]) || 0;
+      const secondParts = parts[1].split('.');
+      seconds = parseInt(secondParts[0]) || 0;
+      milliseconds = parseFloat('0.' + (secondParts[1] || '0')) || 0;
+    } else if (parts.length === 1) {
+      // Format: ss.ms
+      const secondParts = parts[0].split('.');
+      seconds = parseInt(secondParts[0]) || 0;
+      milliseconds = parseFloat('0.' + (secondParts[1] || '0')) || 0;
+    }
+    
+    return hours * 3600 + minutes * 60 + seconds + milliseconds;
+  }
+  
+  function parseVTTToSentences(vttText) {
+    const lines = vttText.trim().split('\n');
+    const wordSegments = [];
+  
+    let currentSegment = null;
+  
+    // First, parse all individual word segments
+    for (let line of lines) {
+      line = line.trim();
+  
+      // Skip header
+      if (line === 'WEBVTT' || line === '') continue;
+  
+      // If line contains timestamp
+      if (line.includes('-->')) {
+        if (currentSegment && currentSegment.text !== '') {
+          wordSegments.push(currentSegment);
+        }
+  
+        const [startTime, endTime] = line
+          .split('-->')
+          .map((t) => parseTimeToSeconds(t.trim()));
+  
+        currentSegment = {
+          start: startTime,
+          end: endTime,
+          text: ''
+        };
+      } else if (currentSegment) {
+        // Accumulate text
+        currentSegment.text += (currentSegment.text ? ' ' : '') + line;
+      }
+    }
+  
+    // Push the last segment
+    if (currentSegment && currentSegment.text !== '') {
+      wordSegments.push(currentSegment);
+    }
+  
+    // Now group words into sentences
+    const sentences = [];
+    let currentSentence = {
+      start: null,
+      end: null,
+      text: '',
+      words: []
+    };
+  
+    for (let segment of wordSegments) {
+      const word = segment.text.trim();
+      
+      // Initialize sentence start time if this is the first word
+      if (currentSentence.start === null) {
+        currentSentence.start = segment.start;
+      }
+      
+      // Add word to current sentence
+      currentSentence.words.push(word);
+      currentSentence.text = currentSentence.words.join(' ');
+      currentSentence.end = segment.end;
+      
+      // Check if this word ends a sentence
+      if (word.endsWith('.') || word.endsWith('!') || word.endsWith('?')) {
+        // Complete the current sentence
+        sentences.push({
+          start: currentSentence.start,
+          end: currentSentence.end,
+          text: currentSentence.text
+        });
+        
+        // Reset for next sentence
+        currentSentence = {
+          start: null,
+          end: null,
+          text: '',
+          words: []
+        };
+      }
+    }
+    
+    // Handle any remaining words as a final sentence
+    if (currentSentence.words.length > 0) {
+      sentences.push({
+        start: currentSentence.start,
+        end: currentSentence.end,
+        text: currentSentence.text
+      });
+    }
+  
+    return sentences;
+  }
+
 const sendAudioFileForTranscriptionBrowser = async (audioUrl) => {
   try {
     setLoading(2);
@@ -287,8 +408,15 @@ const sendAudioFileForTranscriptionBrowser = async (audioUrl) => {
     const result = await response.json();
     console.log("Transcription result:", result);
 
-    if (result?.result?.segments) {
-      setSentences(result.result.segments);
+    if (result?.result?.vtt) {
+      const vttResult = parseVTTToSentences(result.result.vtt);
+      console.log("Parsed VTT result:", vttResult);
+      if (vttResult.length === 0) {
+        console.warn("No segments found in VTT result.");
+      } else {
+        console.log("Found segments:", vttResult.length);
+      }
+      setSentences(vttResult);
     } else {
       console.warn("No segments found.");
     }
@@ -617,7 +745,7 @@ const sendAudioFileForTranscriptionBrowser = async (audioUrl) => {
                 
                                   // setStartTime(sentence.start);
                                   // setEndTime(loop ? sentence.end : null);
-                                  handlePlayPause();
+                                  // handlePlayPause();
                                 }}
                                 className="text-lg sm:text-xl leading-relaxed inline-block whitespace-normal"
                               >
