@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
-import Groq from "groq-sdk";
+// import Groq from "groq-sdk";
 import { Moon, Play, SunDim, Pause, GalleryHorizontal } from "lucide-react";
 import { useCallback } from "react";
 import { BarLoader, PuffLoader } from "react-spinners";
@@ -254,60 +254,51 @@ export default function Home() {
     // sendAudioFileForTranscriptionBrowser(data.csrfToken, url);
   };
 
-  const sendAudioFileForTranscriptionBrowser = async (audioUrl) => {
-    const groq = new Groq({
-      apiKey: "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",
-      dangerouslyAllowBrowser: true,
+const sendAudioFileForTranscriptionBrowser = async (audioUrl) => {
+  try {
+    setLoading(2);
+    console.log("Fetching audio file...");
+
+    const mp3 = await fetch(audioUrl);
+    if (!mp3.ok) throw new Error(`Failed to fetch MP3: ${mp3.status}`);
+
+    const mp3Buffer = await mp3.arrayBuffer();
+
+    function arrayBufferToBase64(buffer) {
+      let binary = "";
+      const bytes = new Uint8Array(buffer);
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return window.btoa(binary);
+    }
+
+    const base64 = arrayBufferToBase64(mp3Buffer);
+
+    console.log("Sending to backend API...");
+    setLoading(3);
+
+    const response = await fetch("/api/transcribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ audioBase64: base64 }),
     });
 
-    try {
-      setLoading(2);
+    const result = await response.json();
+    console.log("Transcription result:", result);
 
-      // 1. Download the audio file using fetch
-      const audioBlob = await downloadAudioBrowser(audioUrl);
-
-      // 2. Create a File object (if needed, otherwise use the Blob directly)
-      const audioFile = new File([audioBlob], "audio.mp3", {
-        type: "audio/mp3",
-      }); // Adjust filename and type
-
-      setLoading(3);
-
-      // 3. Send the audio file to Groq
-      const trans = await groq.audio.transcriptions.create({
-        file: audioFile, // Or audioBlob if the API accepts Blobs directly
-        model: "whisper-large-v3",
-        response_format: "verbose_json",
-        temperature: 0.0,
-        language: "en",
-      });
-
-      const typedTrans = trans;
-      if (typedTrans?.segments) {
-        setSentences(typedTrans.segments);
-      }
-      console.log("Transcription:", typedTrans?.segments);
-    } catch (error) {
-      console.error("Error during transcription:", error);
-      setError("Error during transcription. Please try again.");
-    } finally {
-      setLoading(0);
+    if (result?.result?.segments) {
+      setSentences(result.result.segments);
+    } else {
+      console.warn("No segments found.");
     }
-  };
-
-  const downloadAudioBrowser = async (audioUrl) => {
-    try {
-      const response = await fetch(audioUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const blob = await response.blob(); // Get the response as a Blob
-      return blob;
-    } catch (error) {
-      console.error("Error downloading audio:", error);
-      throw new Error("Failed to download audio file.");
-    }
-  };
+  } catch (error) {
+    console.error("Error during transcription:", error);
+    setError("Error during transcription. Please try again.");
+  } finally {
+    setLoading(0);
+  }
+};
 
   useEffect(() => {
     if (youtubeUrl) {
@@ -586,7 +577,7 @@ export default function Home() {
                             Transcription
                           </h2>
                           <button
-                            onClick={() => copyToClipboard(transcription)}
+                            onClick={() => copyToClipboard(sentences.map(s => s.text).join("\n"))}
                             className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg flex items-center text-lg sm:text-lg font-medium transition-all duration-300 ${
                               darkMode
                                 ? "bg-zinc-800 hover:bg-gray-700 text-slate-200"
@@ -616,8 +607,16 @@ export default function Home() {
                               <span
                                 onDoubleClick={() => setEndTime(sentence.end)}
                                 onClick={() => {
-                                  setStartTime(sentence.start);
-                                  setEndTime(loop ? sentence.end : null);
+                                  if(loop) {
+                                    // setStartTime(sentence.start);
+                                    setEndTime(sentence.end);
+                                  } else {
+                                    setStartTime(sentence.start);
+                                    // setEndTime(null);
+                                  }
+                
+                                  // setStartTime(sentence.start);
+                                  // setEndTime(loop ? sentence.end : null);
                                   handlePlayPause();
                                 }}
                                 className="text-lg sm:text-xl leading-relaxed inline-block whitespace-normal"
